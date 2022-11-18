@@ -14,6 +14,14 @@ struct Vertex {
 	GLfloat x;
 	GLfloat y;
 };
+
+void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+}
+
 void InitVBO() {
 	glGenBuffers(1, &VBO);
 	// Вершины нашего треугольника
@@ -25,9 +33,10 @@ void InitVBO() {
 	// Передаем вершины в буфер
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
-	//checkOpenGLerror(); //Пример функции есть в лабораторной
-	// Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки
+
 }
+
+// Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
 #version 330 core
 in vec2 coord;
@@ -35,6 +44,7 @@ void main() {
 gl_Position = vec4(coord, 0.0, 1.0);
 }
 )";
+
 // Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
 #version 330 core
@@ -43,6 +53,7 @@ void main() {
 color = vec4(0, 1, 0, 1);
 }
 )";
+
 void ShaderLog(unsigned int shader)
 {
 	int infologLen = 0;
@@ -55,6 +66,7 @@ void ShaderLog(unsigned int shader)
 		std::cout << "InfoLog: " << infoLog.data() << std::endl;
 	}
 }
+
 void InitShader() {
 	// Создаем вершинный шейдер
 	GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
@@ -97,12 +109,17 @@ void InitShader() {
 	}
 	//checkOpenGLerror();
 }
+
 void Init() {
 	// Шейдеры
 	InitShader();
 	//Вершинный буфер
 	InitVBO();
+	//проверка ошибок
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
 }
+
 void Draw() {
 	// Устанавливаем шейдерную программу текущей
 	glUseProgram(Program);
@@ -120,8 +137,8 @@ void Draw() {
 	glDisableVertexAttribArray(Attrib_vertex);
 	// Отключаем шейдерную программу
 	glUseProgram(0);
-	//checkOpenGLerror();
 }
+
 // Освобождение шейдеров
 void ReleaseShader() {
 	// Передавая ноль, мы отключаем шейдерную программу
@@ -129,17 +146,19 @@ void ReleaseShader() {
 	// Удаляем шейдерную программу
 	glDeleteProgram(Program);
 }
+
 // Освобождение буфера
 void ReleaseVBO() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDeleteBuffers(1, &VBO);
 }
-//void checkOpenGLerror() {}
+
 void Release() {// Шейдеры
 	ReleaseShader();
 	// Вершинный буфер
 	ReleaseVBO();
 }
+
 int main() {
 	sf::Window window(sf::VideoMode(600, 600), "My OpenGL window", sf::Style::Default, sf::ContextSettings(24));
 	window.setVerticalSyncEnabled(true);
@@ -152,12 +171,12 @@ int main() {
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) {
-				window.close(); 
+				window.close();
 			}
-			else 
+			else
 				if (event.type == sf::Event::Resized) {
-				glViewport(0, 0, event.size.width, event.size.height);
-			}
+					glViewport(0, 0, event.size.width, event.size.height);
+				}
 		}
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		Draw();
